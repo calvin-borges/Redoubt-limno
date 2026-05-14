@@ -6,7 +6,7 @@ library(writexl)
 # Calvin Borges calvin.borges@usda.gov
 #April 1 2026
 #
-## This script takes 3 different .csv files and converts and combines them to common variables and units
+## This script takes 4 different .csv files and converts and combines them to common variables and units
 #set wd
 setwd("C:/Users/Calvinborges/Desktop/Git upload")
 #
@@ -14,13 +14,14 @@ setwd("C:/Users/Calvinborges/Desktop/Git upload")
 # READ IN DATA + col types
 ## read in functional .csv from years 1999-2017
 #
-nutrients.99.17<- read_csv("data/processed/nutrients/nutrients_1999_2017_clean.csv")
+nutrients.99.17<- read_csv("Redoubt-limno/data/processed/nutrients/nutrients_1999_2017_clean.csv")
 
 #read in .csv for years 2023 and 2024
-nut.23.24<- read_csv("data/processed/nutrients/Redoubt Nutrients 2023_2024_complete.csv")
+nut.23.25<- read_csv("Redoubt-limno/data/processed/nutrients/Redoubt Nutrients 2023-2025_complete.csv")
 #
 # read in csv 1980-1996
-nut.80.96<-read_csv("data/processed/nutrients/80_96.nutrient.clean.csv")
+nut.80.96<-read_csv("Redoubt-limno/data/processed/nutrients/80_96.nutrient.clean.csv")
+
 
 #different labs (KILL vs CCAL) were used in these time periods so slightly different nomenclature/ anaylses/ Units/. 
 #1) CCAL reported units in mg/l while kill reports in ug/L. Transformation is x1000.
@@ -41,6 +42,8 @@ nut.80.96<-read_csv("data/processed/nutrients/80_96.nutrient.clean.csv")
 #
 # transform 1999_2017. Reached out to CCAL and from 1999- 2005 (specifically to april of 05) the lab was reporting TKN. went into the original text files and UTKN analyses was requested til this date while UTN requested afterwards. Therefore logical that 1999-2005 UTN needs to be converted from TKN to UTN (by adding nitrate/nitrite). A plot of the non-converted data supports this as UTN in this period dramatically lower. CCAL recommends doing so. Cb
 
+##SI vs Si 02. need to fix. 1999_2017 listed as si02/L. 1980-96 and 23+24 are Rsi/L. These are not 1:1 as this code below treats them.
+
 #convert TKN to UTN in appropriate year/months
 nutrients.99.17<-nutrients.99.17 %>% 
   mutate( UTN_mgl= case_when(Year<2005 ~ UTN_mgl+NO3_N_plus_n02_mg_l, 
@@ -49,31 +52,32 @@ nutrients.99.17<-nutrients.99.17 %>%
   ))
 
 # 23 and 24 
-str(nut.23.24)
+str(nut.23.25)
 
-#Transform 23+24 + Rename to match 1999.2017+ add time#######################
-nut.23.24<-nut.23.24 %>% 
+#Transform 23+24+25 + Rename to match 1999.2017+ add time#######################
+nut.23.24.25<-nut.23.25 %>% 
   mutate( PO4_P_mgl= FRP_ug_L/1000,#phosphorous cycle first
           TDP_mgl=  TFP_ug_L/1000,
           UTP_mgl= TP_ug_L/1000,
           NO3_N_plus_n02_mg_l=`N+N_ug_L`/1000, #then nitrogen cycle
           NH3_N_mg_l= TA_ug_L/1000,
           UTN_mgl= (TKN_ug_L+ `N+N_ug_L`)/1000,
-          SiO2_Si_mgl= Rsi_ug_L/1000)  #Silica
+          Si_mgl= Rsi_ug_L/1000)  #Silica
 
 #add Day/Month/Year/Depth cols
-nut.23.24.transformed<- nut.23.24 %>%
+nut.23.24.25.transformed<- nut.23.24.25 %>%
   mutate( Date= as.Date(Sample_date, format= "%m/%d/%Y"), #confirm as date
           Year=  year(Date), #extract
           Month= month(Date),
           Julian_Day=yday(Date),
           Depth_m= `Depth(m)`
   )
-str(nut.23.24.transformed)
+str(nut.23.24.25.transformed)
+
 str(nutrients.99.17) #looks good to join 
 
 #combine
-nutrients<- bind_rows(nutrients.99.17, nut.23.24.transformed)
+nutrients<- bind_rows(nutrients.99.17, nut.23.24.25.transformed)
 
 #Transform + Rename 80.96
 #
@@ -85,7 +89,7 @@ nut.80.96<-
           NO3_N_plus_n02_mg_l=`Nitrate + Nitrite (mg·L-1 as N)`/1000, #then nitrogen cycle
           NH3_N_mg_l= `Ammonia (mg·L-1 as N)`/1000,
           UTN_mgl= (`Total Kjeldahl Nitrogen (mg·L-1 as N)`+ `Nitrate + Nitrite (mg·L-1 as N)`)/1000,
-          SiO2_Si_mgl= `Reactive Silicon (mg·L-1 as Si)`/1000,#Silica
+          Si_mgl= `Reactive Silicon (mg·L-1 as Si)`/1000,#Silica
           Iron_mgl= `Iron (mg·L-1)`/1000,
           Particulate_Carbon_mgl=`Particulate Carbon (mg·L-1 as C)`/1000,
           Mg_mgl= `Magnesium (mg·L-1)`, #note not/1000, datasheet is written as mgL
@@ -118,6 +122,8 @@ nutrients.dat<-nutrients.dat %>%
 #
 str(nutrients.dat)
 
+
+
 ## okay writing this to a .csv. Caution that I made transformations/ joins/ decisions that could effect the integrity of this data. Recommend at least reading through code above to make sure you agree with what I did- Safer practice to start with "80_96.clean', "nutrients_1999-2017_clean", and Redoubt Nutrients 2023_2024_complete.csv and perform your own operations.
 
-write.csv( nutrients.dat,"C:/Users/Calvinborges/Desktop/Git upload/data/processed/nutrients.1980.2024.clean.csv")
+write.csv( nutrients.dat,"C:/Users/Calvinborges/Desktop/Git upload/Redoubt-limno/data/processed/nutrients.1980.2025.clean.csv")
